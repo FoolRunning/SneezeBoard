@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SneezeBoardClient", "SneezeBoardClient\SneezeBoardClient.csproj", "{33A1DB57-0CF0-4761-974D-434B575EFA9D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SneezeBoardServer", "SneezeBoardServer\SneezeBoardServer.csproj", "{62AE46FB-AF87-4388-AE70-F09BCFAA7E8A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SneezeBoardCommon", "SneezeBoardCommon\SneezeBoardCommon.csproj", "{3D506EBA-D7ED-416E-B0CD-0CEEF3D70D92}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{33A1DB57-0CF0-4761-974D-434B575EFA9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33A1DB57-0CF0-4761-974D-434B575EFA9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33A1DB57-0CF0-4761-974D-434B575EFA9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33A1DB57-0CF0-4761-974D-434B575EFA9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62AE46FB-AF87-4388-AE70-F09BCFAA7E8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62AE46FB-AF87-4388-AE70-F09BCFAA7E8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62AE46FB-AF87-4388-AE70-F09BCFAA7E8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62AE46FB-AF87-4388-AE70-F09BCFAA7E8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D506EBA-D7ED-416E-B0CD-0CEEF3D70D92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D506EBA-D7ED-416E-B0CD-0CEEF3D70D92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D506EBA-D7ED-416E-B0CD-0CEEF3D70D92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D506EBA-D7ED-416E-B0CD-0CEEF3D70D92}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
