@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using SneezeBoardClient.Properties;
@@ -31,6 +32,20 @@ namespace SneezeBoardClient
             txtbx_ip.Text = Settings.Default.ServerIP;
             lbl_apocalypse.Text = "";
             UpdateUIState();
+            //if (Environment.OSVersion.Platform == PlatformID.Unix)
+            //{
+            //    try
+            //    {
+            //        notifyIcon.Dispose();
+            //        components.Remove(notifyIcon);
+            //        notifyIcon = null;
+            //    }
+            //    catch
+            //    {
+            //        // This can crash on Linux
+            //    }
+            //}
+
         }
 
         private UserInfo CurrentUser
@@ -55,7 +70,7 @@ namespace SneezeBoardClient
             BeginInvoke(new Action(() =>
             {
                 if (name != CurrentUser?.Name)
-                    notifyIcon.ShowBalloonTip(2000, "Sneeze Countdown", $"{name} sneezed!", ToolTipIcon.None);
+                    notifyIcon?.ShowBalloonTip(2000, "Sneeze Countdown", $"{name} sneezed!", ToolTipIcon.None);
             }));
         }
         
@@ -90,7 +105,8 @@ namespace SneezeBoardClient
             //if the form is minimized  
             //hide it from the task bar  
             //and show the system tray icon (represented by the NotifyIcon control)  
-            if (WindowState == FormWindowState.Minimized)
+
+            if (WindowState == FormWindowState.Minimized && Environment.OSVersion.Platform != PlatformID.Unix)
             {
                 Hide();
             }
