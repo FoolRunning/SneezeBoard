@@ -20,6 +20,9 @@ namespace SneezeBoardCommon
 
         public int CountdownStart = 27002;
 
+        [XmlAttribute]
+        public int Version;
+
         [XmlArray("Sneezes")]
         [XmlArrayItem("Sneeze")]
         public List<SneezeRecord> Sneezes = new List<SneezeRecord>();

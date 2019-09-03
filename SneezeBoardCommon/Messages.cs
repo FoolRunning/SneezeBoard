@@ -13,6 +13,7 @@ namespace SneezeBoardCommon
         public const string AddUser = "AddUser";
         public const string DatabaseRequested = "DatabaseRequested";
         public const string UpdateUser = "UpdateUser";
+        public const string UpdateSneeze = "UpdateSneeze";
         public const string PersonSneezed = "PersonSneezed";
     }
 

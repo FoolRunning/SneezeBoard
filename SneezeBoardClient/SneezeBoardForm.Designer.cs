@@ -42,6 +42,7 @@
             this.label3 = new System.Windows.Forms.Label();
             this.btn_connect = new System.Windows.Forms.Button();
             this.pnl_scroller = new System.Windows.Forms.Panel();
+            this.scroll_horizontal = new System.Windows.Forms.HScrollBar();
             this.txtbx_commentary = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
@@ -49,7 +50,6 @@
             this.mnu_Restore = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.mnu_Exit = new System.Windows.Forms.ToolStripMenuItem();
-            this.scroll_horizontal = new System.Windows.Forms.HScrollBar();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.lbl_we_win = new System.Windows.Forms.Label();
             this.pnl_scroller.SuspendLayout();
@@ -89,6 +89,7 @@
             this.lbl_sneeze_display.Size = new System.Drawing.Size(503, 159);
             this.lbl_sneeze_display.TabIndex = 2;
             this.lbl_sneeze_display.Paint += new System.Windows.Forms.PaintEventHandler(this.lbl_sneeze_display_Paint);
+            this.lbl_sneeze_display.MouseClick += new System.Windows.Forms.MouseEventHandler(this.lbl_sneeze_display_MouseClick);
             this.lbl_sneeze_display.MouseMove += new System.Windows.Forms.MouseEventHandler(this.lbl_sneeze_display_MouseMove);
             // 
             // lbl_display_color
@@ -188,6 +189,17 @@
             this.pnl_scroller.Size = new System.Drawing.Size(505, 178);
             this.pnl_scroller.TabIndex = 11;
             // 
+            // scroll_horizontal
+            // 
+            this.scroll_horizontal.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.scroll_horizontal.LargeChange = 100;
+            this.scroll_horizontal.Location = new System.Drawing.Point(0, 159);
+            this.scroll_horizontal.Name = "scroll_horizontal";
+            this.scroll_horizontal.Size = new System.Drawing.Size(503, 17);
+            this.scroll_horizontal.SmallChange = 10;
+            this.scroll_horizontal.TabIndex = 3;
+            this.scroll_horizontal.Scroll += new System.Windows.Forms.ScrollEventHandler(this.scroll_horizontal_Scroll);
+            // 
             // txtbx_commentary
             // 
             this.txtbx_commentary.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
@@ -243,17 +255,6 @@
             this.mnu_Exit.Size = new System.Drawing.Size(118, 22);
             this.mnu_Exit.Text = "Exit";
             this.mnu_Exit.Click += new System.EventHandler(this.mnu_Exit_Click);
-            // 
-            // scroll_horizontal
-            // 
-            this.scroll_horizontal.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.scroll_horizontal.LargeChange = 100;
-            this.scroll_horizontal.Location = new System.Drawing.Point(0, 159);
-            this.scroll_horizontal.Name = "scroll_horizontal";
-            this.scroll_horizontal.Size = new System.Drawing.Size(503, 17);
-            this.scroll_horizontal.SmallChange = 10;
-            this.scroll_horizontal.TabIndex = 3;
-            this.scroll_horizontal.Scroll += new System.Windows.Forms.ScrollEventHandler(this.scroll_horizontal_Scroll);
             // 
             // lbl_we_win
             // 

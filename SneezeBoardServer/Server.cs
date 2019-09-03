@@ -31,6 +31,7 @@ namespace SneezeBoardServer
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.AddUser, HandleAddUser);
             NetworkComms.AppendGlobalIncomingPacketHandler<int>(Messages.DatabaseRequested, HandleDatabaseRequest);
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.UpdateUser, HandleUpdateUser);
+            NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.UpdateSneeze, HandleUpdateSneeze);
             //Start listening for incoming connections
             Connection.StartListening(ConnectionType.TCP, new System.Net.IPEndPoint(System.Net.IPAddress.Any, CommonInfo.ServerPort));
 
@@ -69,6 +70,20 @@ namespace SneezeBoardServer
             UserInfo user = new UserInfo();
             user.DeserializeFromString(serializedUser);
             database.IdToUser.Add(user.UserGuid, user);
+            database.Save();
+
+            TellClientsToUpdate();
+        }
+
+        private static void HandleUpdateSneeze(PacketHeader header, Connection connection, string serializedSneeze)
+        {
+            SneezeRecord sneeze = new SneezeRecord();
+            sneeze.DeserializeFromString(serializedSneeze);
+            int sneezeIndex = database.Sneezes.FindIndex(s => s.Date == sneeze.Date);
+            if (sneezeIndex == -1)
+                return; // This should never happen, but just in case...
+
+            database.Sneezes[sneezeIndex] = sneeze;
             database.Save();
 
             TellClientsToUpdate();

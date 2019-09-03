@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Linq.Expressions;
@@ -15,6 +16,7 @@ namespace SneezeBoardClient
 
         private readonly Regex ipAddressRegex = new Regex(@"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", RegexOptions.Compiled);
 
+        private DatabaseErrorType dbError = DatabaseErrorType.None;
         private bool failedToConnect;
         private bool connectionClosed;
 
@@ -28,6 +30,7 @@ namespace SneezeBoardClient
             SneezeClientListener.DatabaseUpdated += SneezeClientListener_DatabaseUpdated;
             SneezeClientListener.PersonSneezed += SneezeClientListener_PersonSneezed;
             SneezeClientListener.ConnectionClosed += SneezeClientListener_ConnectionClosed;
+            SneezeClientListener.DatabaseError += SneezeClientListener_DatabaseError;
 
             txtbx_ip.Text = Settings.Default.ServerIP;
             lbl_apocalypse.Text = "";
@@ -65,6 +68,12 @@ namespace SneezeBoardClient
             lbl_sneeze_display.Invalidate();
         }
 
+        private void SneezeClientListener_DatabaseError(DatabaseErrorType errorType)
+        {
+            dbError = errorType;
+            lbl_sneeze_display.Invalidate();
+        }
+
         private void SneezeClientListener_PersonSneezed(string name)
         {
             BeginInvoke(new Action(() =>
@@ -78,12 +87,15 @@ namespace SneezeBoardClient
         {
             BeginInvoke(new Action(() =>
             {
+                SneezeDatabase database = SneezeClientListener.Database;
+                if (database == null)
+                    return; // Could have been set to null after the BeginInvoke was called
+
                 lbl_sneeze_display.Invalidate();
                 CalculateSneezeScrollBar();
                 UpdateUIState();
                 UpdateSneezers();
 
-                SneezeDatabase database = SneezeClientListener.Database;
                 cmb_sneezers.SelectedItem = database.IdToUser.Values.FirstOrDefault(u => u.UserGuid == Settings.Default.LastSneezer);
                 if (database.Sneezes.Count > 0)
                 {
@@ -122,6 +134,11 @@ namespace SneezeBoardClient
             {
                 if (failedToConnect)
                     DrawTextCentered("Failed to connect to server at specified IP.", g, font, Color.Red);
+                else if (dbError != DatabaseErrorType.None)
+                {
+                    if (dbError == DatabaseErrorType.VersionNumberConflict)
+                        DrawTextCentered("Database version number does not match.\nPlease update your client to the latest version.", g, font, Color.Red);
+                }
                 else if (connectionClosed)
                     DrawTextCentered("Connection to server was lost.", g, font, Color.Red);
                 else
@@ -194,6 +211,7 @@ namespace SneezeBoardClient
 
             failedToConnect = false;
             connectionClosed = false;
+            dbError = DatabaseErrorType.None;
 
             SneezeClientListener.StartListener(txtbx_ip.Text);
         }
@@ -291,6 +309,32 @@ namespace SneezeBoardClient
         private void txtbx_ip_TextChanged(object sender, EventArgs e)
         {
             btn_connect.Enabled = ipAddressRegex.IsMatch(txtbx_ip.Text);
+        }
+
+        private void lbl_sneeze_display_MouseClick(object sender, MouseEventArgs e)
+        {
+            if ((e.Button & MouseButtons.Left) != 0)
+                return;
+            SneezeRecord sneeze = GetSneezeAtLocation(lbl_sneeze_display.PointToClient(MousePosition));
+            if (sneeze == null)
+                return;
+
+            if (sneeze.UserId != CurrentUser?.UserGuid)
+                return;
+
+            ContextMenuStrip strip = new ContextMenuStrip();
+            strip.Items.Add("Edit sneeze...", null, (s, a) =>
+            {
+                using (SneezeCommentEditorForm form = new SneezeCommentEditorForm(sneeze.Comment))
+                {
+                    if (form.ShowDialog(this) == DialogResult.OK)
+                    {
+                        sneeze.Comment = form.UpdatedText;
+                        SneezeClientListener.UpdateSneeze(sneeze);
+                    }
+                }
+            });
+            strip.Show(MousePosition);
         }
 
         private void UpdateUIState()

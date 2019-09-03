@@ -13,13 +13,22 @@ using SneezeBoardCommon;
 
 namespace SneezeBoardClient
 {
+    public enum DatabaseErrorType
+    {
+        None,
+        VersionNumberConflict,
+    }
+
     public static class SneezeClientListener
     {
+        private const int currentVersionNumber = 0;
+
         public static SneezeDatabase Database;
 
         public static event Action FailedToConnect;
         public static event Action ConnectionClosed;
         public static event Action GotDatabase;
+        public static event Action<DatabaseErrorType> DatabaseError;
         public static event Action DatabaseUpdated;
         public static event Action<string> PersonSneezed;
 
@@ -42,7 +51,7 @@ namespace SneezeBoardClient
 
             Database = GetFromServer<SneezeDatabase>(Messages.DatabaseRequested, Messages.DatabaseObject);
 
-            if(Database != null)
+            if(VerifyDatabase())
                 GotDatabase?.Invoke();
             //We have used comms so we make sure to call shutdown
             //NetworkComms.Shutdown();
@@ -61,6 +70,27 @@ namespace SneezeBoardClient
         public static void Sneeze(SneezeRecord sneeze)
         {
             SendToServer(Messages.Sneeze, sneeze);
+        }
+
+        public static void UpdateSneeze(SneezeRecord sneeze)
+        {
+            SendToServer(Messages.UpdateSneeze, sneeze);
+        }
+
+        private static bool VerifyDatabase()
+        {
+            if (Database == null)
+                return false;
+
+            if (Database.Version != currentVersionNumber)
+            {
+                NetworkComms.CloseAllConnections();
+                Database = null;
+                DatabaseError?.Invoke(DatabaseErrorType.VersionNumberConflict);
+                return false;
+            }
+
+            return true;
         }
 
         private static T GetFromServer<T>(string sendMessage, string returnMessage) where T : ServerObject, new()
@@ -143,7 +173,8 @@ namespace SneezeBoardClient
         {
             Database = new SneezeDatabase();
             Database.DeserializeFromString(serializedDatabase);
-            DatabaseUpdated?.Invoke();
+            if (VerifyDatabase())
+                DatabaseUpdated?.Invoke();
         }
 
         private static void HandlePersonSneezed(PacketHeader header, Connection connection, string name)

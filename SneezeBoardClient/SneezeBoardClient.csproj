@@ -68,6 +68,12 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SneezeClientListener.cs" />
+    <Compile Include="SneezeCommentEditorForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SneezeCommentEditorForm.Designer.cs">
+      <DependentUpon>SneezeCommentEditorForm.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="AddUserForm.resx">
       <DependentUpon>AddUserForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -82,6 +88,9 @@
     </Compile>
     <EmbeddedResource Include="SneezeBoardForm.resx">
       <DependentUpon>SneezeBoardForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SneezeCommentEditorForm.resx">
+      <DependentUpon>SneezeCommentEditorForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
