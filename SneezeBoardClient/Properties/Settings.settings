@@ -8,5 +8,11 @@
     <Setting Name="LastSneezer" Type="System.Guid" Scope="User">
       <Value Profile="(Default)">00000000-0000-0000-0000-000000000000</Value>
     </Setting>
+    <Setting Name="BoardBackColor" Type="System.Drawing.Color" Scope="User">
+      <Value Profile="(Default)">White</Value>
+    </Setting>
+    <Setting Name="DateRange" Type="SneezeBoardClient.DateRangeType" Scope="User">
+      <Value Profile="(Default)">SixMonths</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using SneezeBoardClient.Properties;
@@ -19,7 +17,9 @@ namespace SneezeBoardClient
         private DatabaseErrorType dbError = DatabaseErrorType.None;
         private bool failedToConnect;
         private bool connectionClosed;
+        private SneezeRecord lastHoveredSneeze;
 
+        #region Constructor
         public SneezeBoardForm()
         {
             InitializeComponent();
@@ -48,14 +48,17 @@ namespace SneezeBoardClient
             //        // This can crash on Linux
             //    }
             //}
-
         }
+        #endregion
 
+        #region Properties
         private UserInfo CurrentUser
         {
             get { return cmb_sneezers.SelectedItem as UserInfo; }
         }
+        #endregion
 
+        #region Event handlers
         private void SneezeClientListener_ConnectionClosed()
         {
             connectionClosed = true;
@@ -103,7 +106,7 @@ namespace SneezeBoardClient
                     scroll_horizontal.Value = Math.Max(0, sneezeLoc.X - scroll_horizontal.Width / 2);
                 }
 
-                CalculateApocalypse(DateTime.Now - TimeSpan.FromDays(180.0));
+                CalculateApocalypse();
             }));
         }
 
@@ -124,10 +127,15 @@ namespace SneezeBoardClient
             }
         }
 
+        private void SneezeBoardForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            SneezeClientListener.ShutDown();
+        }
+
         private void lbl_sneeze_display_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
-            g.Clear(Color.White);
+            g.Clear(Settings.Default.BoardBackColor);
             Font font = lbl_sneeze_display.Font;
             SneezeDatabase database = SneezeClientListener.Database;
             if (database == null)
@@ -188,20 +196,35 @@ namespace SneezeBoardClient
 
         private void lbl_sneeze_display_MouseMove(object sender, MouseEventArgs e)
         {
-            SneezeRecord record = GetSneezeAtLocation(lbl_sneeze_display.PointToClient(MousePosition));
+            int sneezeIndex;
+            SneezeRecord record = GetSneezeAtLocation(lbl_sneeze_display.PointToClient(MousePosition), out sneezeIndex);
             if (record == null)
             {
+                toolTip.ToolTipTitle = "";
                 toolTip.SetToolTip(lbl_sneeze_display, null);
+                lastHoveredSneeze = null;
                 return;
             }
 
-            string toolTipText = $"Username: {SneezeClientListener.Database.IdToUser[record.UserId].Name}\n" +
-                                 $"Date: {record.Date.ToLocalTime():g}\n";
+            if (record == lastHoveredSneeze)
+                return;
+            lastHoveredSneeze = record;
+
+            SneezeDatabase database = SneezeClientListener.Database;
+            string toolTipText = $"Username: {database.IdToUser[record.UserId].Name}\n" +
+                                 $"Date: {record.Date.ToLocalTime():g}";
 
             if (!String.IsNullOrEmpty(record.Comment))
-                toolTipText += record.Comment;
+                toolTipText += "\n\n" + record.Comment;
 
+            toolTip.ToolTipTitle = "Sneeze " + (database.CountdownStart - sneezeIndex);
             toolTip.SetToolTip(lbl_sneeze_display, toolTipText);
+        }
+        
+        private void lbl_sneeze_display_MouseLeave(object sender, EventArgs e)
+        {
+            toolTip.ToolTipTitle = "";
+            lastHoveredSneeze = null;
         }
 
         private void btn_connect_Click(object sender, EventArgs e)
@@ -283,6 +306,18 @@ namespace SneezeBoardClient
             if (!String.IsNullOrEmpty(message))
                 MessageBox.Show(message, "Sneeze Streak Status");
         }
+        
+        private void btn_settings_Click(object sender, EventArgs e)
+        {
+            using (SettingsForm form = new SettingsForm())
+            {
+                if (form.ShowDialog(this) == DialogResult.OK)
+                {
+                    lbl_sneeze_display.Invalidate();
+                    CalculateApocalypse();
+                }
+            }
+        }
 
         private void notifyIcon_MouseDoubleClick(object sender, MouseEventArgs e)
         {
@@ -315,7 +350,8 @@ namespace SneezeBoardClient
         {
             if ((e.Button & MouseButtons.Left) != 0)
                 return;
-            SneezeRecord sneeze = GetSneezeAtLocation(lbl_sneeze_display.PointToClient(MousePosition));
+            int sneezeIndex;
+            SneezeRecord sneeze = GetSneezeAtLocation(lbl_sneeze_display.PointToClient(MousePosition), out sneezeIndex);
             if (sneeze == null)
                 return;
 
@@ -337,6 +373,13 @@ namespace SneezeBoardClient
             strip.Show(MousePosition);
         }
 
+        private void tmr_updateApocalypse_Tick(object sender, EventArgs e)
+        {
+            CalculateApocalypse();
+        }
+        #endregion
+
+        #region Private helper methods
         private void UpdateUIState()
         {
             SneezeDatabase database = SneezeClientListener.Database;
@@ -381,10 +424,11 @@ namespace SneezeBoardClient
             return new Point(columnNum * (numberSize.Width + numberPadding), rowNum * font.Height);
         }
 
-        private SneezeRecord GetSneezeAtLocation(Point mousePosition)
+        private SneezeRecord GetSneezeAtLocation(Point mousePosition, out int index)
         {
             Font font = lbl_sneeze_display.Font;
             SneezeDatabase database = SneezeClientListener.Database;
+            index = -1;
             if (database == null)
                 return null;
 
@@ -403,7 +447,10 @@ namespace SneezeBoardClient
                 Point textLoc = new Point(columnNum * (numberSize.Width + numberPadding) - viewLeftEdge, rowNum * font.Height);
                 Rectangle rect = new Rectangle(textLoc, numberSize);
                 if (rect.Contains(mousePosition))
+                {
+                    index = i;
                     return database.Sneezes[i];
+                }
             }
             return null;
         }
@@ -522,9 +569,28 @@ namespace SneezeBoardClient
             return retStr;
         }
 
-        private void CalculateApocalypse(DateTime startingDate)
+        private void CalculateApocalypse()
         {
             SneezeDatabase database = SneezeClientListener.Database;
+            if (database == null)
+            {
+                lbl_apocalypse.Text = "";
+                return;
+            }
+
+            DateTime startingDate;
+            switch (Settings.Default.DateRange)
+            {
+                case DateRangeType.OneWeek: startingDate = DateTime.Now.AddDays(-7); break;
+                case DateRangeType.TwoWeeks: startingDate = DateTime.Now.AddDays(-14); break;
+                case DateRangeType.OneMonth: startingDate = DateTime.Now.AddMonths(-1); break;
+                case DateRangeType.ThreeMonths: startingDate = DateTime.Now.AddMonths(-3); break;
+                case DateRangeType.SixMonths: startingDate = DateTime.Now.AddMonths(-6); break;
+                case DateRangeType.Year: startingDate = DateTime.Now.AddYears(-1); break;
+                default:
+                case DateRangeType.AllTime: startingDate = DateTime.MinValue; break;
+            }
+
             int countOfSneezesInDateRange = 0;
             DateTime dateOfFirstSneezeInRange = DateTime.MinValue;
             for (int i = database.Sneezes.Count - 1; i >= 0; i--)
@@ -536,7 +602,10 @@ namespace SneezeBoardClient
             }
 
             if (dateOfFirstSneezeInRange == DateTime.MinValue)
+            {
+                lbl_apocalypse.Text = "No sneezes in range";
                 return;
+            }
 
             TimeSpan timeRange = DateTime.Now - dateOfFirstSneezeInRange;
             double millisecondsBetweenSneezes = timeRange.TotalMilliseconds / countOfSneezesInDateRange;
@@ -544,5 +613,6 @@ namespace SneezeBoardClient
             DateTime apocalypseDate = DateTime.Now + TimeSpan.FromMilliseconds(millisecondsUntilComplete);
             lbl_apocalypse.Text = apocalypseDate.ToString("g");
         }
+        #endregion
     }
 }

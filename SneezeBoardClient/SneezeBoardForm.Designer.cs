@@ -51,7 +51,9 @@
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.mnu_Exit = new System.Windows.Forms.ToolStripMenuItem();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.btn_settings = new System.Windows.Forms.Button();
             this.lbl_we_win = new System.Windows.Forms.Label();
+            this.tmr_updateApocalypse = new System.Windows.Forms.Timer(this.components);
             this.pnl_scroller.SuspendLayout();
             this.contextMenuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -90,6 +92,7 @@
             this.lbl_sneeze_display.TabIndex = 2;
             this.lbl_sneeze_display.Paint += new System.Windows.Forms.PaintEventHandler(this.lbl_sneeze_display_Paint);
             this.lbl_sneeze_display.MouseClick += new System.Windows.Forms.MouseEventHandler(this.lbl_sneeze_display_MouseClick);
+            this.lbl_sneeze_display.MouseLeave += new System.EventHandler(this.lbl_sneeze_display_MouseLeave);
             this.lbl_sneeze_display.MouseMove += new System.Windows.Forms.MouseEventHandler(this.lbl_sneeze_display_MouseMove);
             // 
             // lbl_display_color
@@ -128,7 +131,7 @@
             // 
             this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(344, 262);
+            this.label2.Location = new System.Drawing.Point(344, 266);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(49, 13);
             this.label2.TabIndex = 6;
@@ -139,7 +142,7 @@
             this.cmb_sneezers.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cmb_sneezers.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmb_sneezers.FormattingEnabled = true;
-            this.cmb_sneezers.Location = new System.Drawing.Point(347, 278);
+            this.cmb_sneezers.Location = new System.Drawing.Point(347, 282);
             this.cmb_sneezers.Name = "cmb_sneezers";
             this.cmb_sneezers.Size = new System.Drawing.Size(165, 21);
             this.cmb_sneezers.TabIndex = 7;
@@ -148,7 +151,7 @@
             // txtbx_ip
             // 
             this.txtbx_ip.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtbx_ip.Location = new System.Drawing.Point(321, 212);
+            this.txtbx_ip.Location = new System.Drawing.Point(321, 233);
             this.txtbx_ip.Name = "txtbx_ip";
             this.txtbx_ip.Size = new System.Drawing.Size(110, 20);
             this.txtbx_ip.TabIndex = 8;
@@ -158,7 +161,7 @@
             // 
             this.label3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(318, 196);
+            this.label3.Location = new System.Drawing.Point(318, 217);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(54, 13);
             this.label3.TabIndex = 9;
@@ -167,7 +170,7 @@
             // btn_connect
             // 
             this.btn_connect.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btn_connect.Location = new System.Drawing.Point(437, 210);
+            this.btn_connect.Location = new System.Drawing.Point(437, 231);
             this.btn_connect.Name = "btn_connect";
             this.btn_connect.Size = new System.Drawing.Size(75, 23);
             this.btn_connect.TabIndex = 10;
@@ -256,6 +259,24 @@
             this.mnu_Exit.Text = "Exit";
             this.mnu_Exit.Click += new System.EventHandler(this.mnu_Exit_Click);
             // 
+            // toolTip
+            // 
+            this.toolTip.AutoPopDelay = 15000;
+            this.toolTip.InitialDelay = 100;
+            this.toolTip.ReshowDelay = 100;
+            // 
+            // btn_settings
+            // 
+            this.btn_settings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btn_settings.Image = ((System.Drawing.Image)(resources.GetObject("btn_settings.Image")));
+            this.btn_settings.Location = new System.Drawing.Point(486, 198);
+            this.btn_settings.Name = "btn_settings";
+            this.btn_settings.Size = new System.Drawing.Size(25, 25);
+            this.btn_settings.TabIndex = 15;
+            this.toolTip.SetToolTip(this.btn_settings, "Settings");
+            this.btn_settings.UseVisualStyleBackColor = true;
+            this.btn_settings.Click += new System.EventHandler(this.btn_settings_Click);
+            // 
             // lbl_we_win
             // 
             this.lbl_we_win.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -270,12 +291,19 @@
             this.lbl_we_win.Text = "Come, Lord Jesus come!";
             this.lbl_we_win.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
+            // tmr_updateApocalypse
+            // 
+            this.tmr_updateApocalypse.Enabled = true;
+            this.tmr_updateApocalypse.Interval = 5000;
+            this.tmr_updateApocalypse.Tick += new System.EventHandler(this.tmr_updateApocalypse_Tick);
+            // 
             // SneezeBoardForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(524, 406);
             this.Controls.Add(this.lbl_we_win);
+            this.Controls.Add(this.btn_settings);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.txtbx_commentary);
             this.Controls.Add(this.pnl_scroller);
@@ -293,6 +321,7 @@
             this.MinimumSize = new System.Drawing.Size(540, 445);
             this.Name = "SneezeBoardForm";
             this.Text = "Sneeze Countdown";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.SneezeBoardForm_FormClosed);
             this.SizeChanged += new System.EventHandler(this.SneezeBoardForm_SizeChanged);
             this.Resize += new System.EventHandler(this.SneezeBoardForm_Resize);
             this.pnl_scroller.ResumeLayout(false);
@@ -326,6 +355,8 @@
         private System.Windows.Forms.HScrollBar scroll_horizontal;
         private System.Windows.Forms.ToolTip toolTip;
         private System.Windows.Forms.Label lbl_we_win;
+        private System.Windows.Forms.Button btn_settings;
+        private System.Windows.Forms.Timer tmr_updateApocalypse;
     }
 }
 

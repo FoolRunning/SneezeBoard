@@ -1834,6 +1834,19 @@
   <metadata name="toolTip.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>272, 17</value>
   </metadata>
+  <data name="btn_settings.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAL
+        EwAACxMBAJqcGAAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAACqSURBVDhPrZOB
+        CYAwDAQ7gxM4iiMUF3MERxBcwJEcQf/1U2NRkNaHg+SbhLbW8KamnyPYRJT9LhS1vhDxoGYyyLbBrdJT
+        NMAKWLyAUbGHHtcYs/YagsRv9yv3Y8Gw6V9Y1HYJZr7tCXSCsV8b1Za27y+MTFpOopfVsCdywZtGp74k
+        elnNwS8D6o5gQlJ2iSaY5Z8RRt1DQlL3lCkaoOxnepIKbcD93SeFsANFOEtgzso1wAAAAABJRU5ErkJg
+        gg==
+</value>
+  </data>
+  <metadata name="tmr_updateApocalypse.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>362, 17</value>
+  </metadata>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         AAABAAYAgIAAAAEAIAAoCAEAZgAAAEBAAAABACAAKEIAAI4IAQAwMAAAAQAgAKglAAC2SgEAICAAAAEA

@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using NetworkCommsDotNet;
 using NetworkCommsDotNet.Connections;
 using NetworkCommsDotNet.Connections.TCP;
-using NetworkCommsDotNet.Connections.UDP;
 using SneezeBoardCommon;
 
 namespace SneezeBoardClient
@@ -23,8 +17,6 @@ namespace SneezeBoardClient
     {
         private const int currentVersionNumber = 0;
 
-        public static SneezeDatabase Database;
-
         public static event Action FailedToConnect;
         public static event Action ConnectionClosed;
         public static event Action GotDatabase;
@@ -32,29 +24,52 @@ namespace SneezeBoardClient
         public static event Action DatabaseUpdated;
         public static event Action<string> PersonSneezed;
 
-        public static string Ip;
+        private static readonly object dbSync = new object();
+        private static SneezeDatabase database;
+        private static string ip;
 
-        public static void StartListener(string ip)
-        {
-            Ip = ip;
-            Thread t = new Thread(GetDatabase);
-            t.IsBackground = true;
-            t.Name = "Listener Thread";
-            t.Start();
-            
-        }
-        private static void GetDatabase()
+        static SneezeClientListener()
         {
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.DatabaseObject, HandleSneezeDatabase);
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.PersonSneezed, HandlePersonSneezed);
             NetworkComms.AppendGlobalConnectionCloseHandler(HandleConnectionClosed);
+        }
 
-            Database = GetFromServer<SneezeDatabase>(Messages.DatabaseRequested, Messages.DatabaseObject);
+        public static SneezeDatabase Database
+        {
+            get
+            {
+                lock (dbSync)
+                    return database;
+            }
+        }
 
-            if(VerifyDatabase())
-                GotDatabase?.Invoke();
-            //We have used comms so we make sure to call shutdown
-            //NetworkComms.Shutdown();
+        public static void StartListener(string ip)
+        {
+            NetworkComms.CloseAllConnections();
+
+            SneezeClientListener.ip = ip;
+            Thread t = new Thread(GetDatabase);
+            t.IsBackground = true;
+            t.Name = "Listener Thread";
+            t.Start();
+        }
+
+        public static void ShutDown()
+        {
+            NetworkComms.Shutdown();
+        }
+
+        private static void GetDatabase()
+        {
+            lock (dbSync)
+            {
+                database = GetFromServer<SneezeDatabase>(Messages.DatabaseRequested, Messages.DatabaseObject);
+                if (!VerifyDatabase())
+                    return;
+            }
+
+            GotDatabase?.Invoke();
         }
 
         public static void UpdateUser(UserInfo user)
@@ -79,13 +94,13 @@ namespace SneezeBoardClient
 
         private static bool VerifyDatabase()
         {
-            if (Database == null)
+            if (database == null)
                 return false;
 
-            if (Database.Version != currentVersionNumber)
+            if (database.Version != currentVersionNumber)
             {
                 NetworkComms.CloseAllConnections();
-                Database = null;
+                database = null;
                 DatabaseError?.Invoke(DatabaseErrorType.VersionNumberConflict);
                 return false;
             }
@@ -96,11 +111,11 @@ namespace SneezeBoardClient
         private static T GetFromServer<T>(string sendMessage, string returnMessage) where T : ServerObject, new()
         {
             ConnectionInfo serverConnectionInfo;
-            if (Ip == null)
+            if (ip == null)
                 return default(T);
             try
             {
-                serverConnectionInfo = new ConnectionInfo(Ip, CommonInfo.ServerPort);
+                serverConnectionInfo = new ConnectionInfo(ip, CommonInfo.ServerPort);
             }
             catch (Exception e)
             {
@@ -139,11 +154,11 @@ namespace SneezeBoardClient
         private static void SendToServer<T>(string sendMessage, T objectToSend) where T : ServerObject
         {
             ConnectionInfo serverConnectionInfo;
-            if (Ip == null)
+            if (ip == null)
                 return;
             try
             {
-                serverConnectionInfo = new ConnectionInfo(Ip, CommonInfo.ServerPort);
+                serverConnectionInfo = new ConnectionInfo(ip, CommonInfo.ServerPort);
             }
             catch (Exception e)
             {
@@ -171,10 +186,15 @@ namespace SneezeBoardClient
 
         private static void HandleSneezeDatabase(PacketHeader header, Connection connection, string serializedDatabase)
         {
-            Database = new SneezeDatabase();
-            Database.DeserializeFromString(serializedDatabase);
-            if (VerifyDatabase())
-                DatabaseUpdated?.Invoke();
+            lock (dbSync)
+            {
+                database = new SneezeDatabase();
+                database.DeserializeFromString(serializedDatabase);
+                if (!VerifyDatabase())
+                    return;
+            }
+
+            DatabaseUpdated?.Invoke();
         }
 
         private static void HandlePersonSneezed(PacketHeader header, Connection connection, string name)
@@ -184,7 +204,8 @@ namespace SneezeBoardClient
 
         private static void HandleConnectionClosed(Connection connection)
         {
-            Database = null;
+            lock (dbSync)
+                database = null;
             ConnectionClosed?.Invoke();
         }
     }

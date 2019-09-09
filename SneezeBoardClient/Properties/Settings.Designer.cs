@@ -46,5 +46,29 @@ namespace SneezeBoardClient.Properties {
                 this["LastSneezer"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("White")]
+        public global::System.Drawing.Color BoardBackColor {
+            get {
+                return ((global::System.Drawing.Color)(this["BoardBackColor"]));
+            }
+            set {
+                this["BoardBackColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("SixMonths")]
+        public global::SneezeBoardClient.DateRangeType DateRange {
+            get {
+                return ((global::SneezeBoardClient.DateRangeType)(this["DateRange"]));
+            }
+            set {
+                this["DateRange"] = value;
+            }
+        }
     }
 }

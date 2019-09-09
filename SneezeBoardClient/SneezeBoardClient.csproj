@@ -59,6 +59,13 @@
     <Compile Include="AddUserForm.Designer.cs">
       <DependentUpon>AddUserForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="DateRangeType.cs" />
+    <Compile Include="SettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SettingsForm.Designer.cs">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="SneezeBoardForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -86,6 +93,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="SettingsForm.resx">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="SneezeBoardForm.resx">
       <DependentUpon>SneezeBoardForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -113,6 +123,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="gear.png" />
     <Content Include="SneezeCountdownIcon2.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
