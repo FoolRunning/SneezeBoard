@@ -16,6 +16,7 @@ namespace SneezeBoardClient
 
         private void lbl_backColor_Click(object sender, EventArgs e)
         {
+            colorDialog.Color = lbl_backColor.BackColor;
             if (colorDialog.ShowDialog(this) == DialogResult.OK)
                 lbl_backColor.BackColor = colorDialog.Color;
         }
