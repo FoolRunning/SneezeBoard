@@ -58,10 +58,9 @@ namespace SneezeBoardServer
             database.Sneezes.Add(sneeze);
             database.Save();
 
-            TellClientsToUpdate();
             foreach (ConnectionInfo info in NetworkComms.AllConnectionInfo())
             {
-                TCPConnection.GetConnection(info).SendObject(Messages.PersonSneezed, database.IdToUser[sneeze.UserId].Name);
+                TCPConnection.GetConnection(info).SendObject(Messages.PersonSneezed, serializedSneeze);
             }
         }
 
@@ -72,7 +71,7 @@ namespace SneezeBoardServer
             database.IdToUser.Add(user.UserGuid, user);
             database.Save();
 
-            TellClientsToUpdate();
+            TellClientToUpdateUsers(user);
         }
 
         private static void HandleUpdateSneeze(PacketHeader header, Connection connection, string serializedSneeze)
@@ -86,7 +85,7 @@ namespace SneezeBoardServer
             database.Sneezes[sneezeIndex] = sneeze;
             database.Save();
 
-            TellClientsToUpdate();
+            TellClientToUpdateSneeze(sneeze);
         }
 
         private static void HandleUpdateUser(PacketHeader header, Connection connection, string serializedUser)
@@ -96,7 +95,7 @@ namespace SneezeBoardServer
             database.IdToUser[user.UserGuid].Color = user.Color;
             database.Save();
 
-            TellClientsToUpdate();
+            TellClientToUpdateUsers(user);
         }
 
         private static void HandleDatabaseRequest(PacketHeader header, Connection connection, int message)
@@ -104,12 +103,21 @@ namespace SneezeBoardServer
             connection.SendObject(Messages.DatabaseObject, database.SerializeToString());
         }
 
-        private static void TellClientsToUpdate()
+        private static void TellClientToUpdateSneeze(SneezeRecord sneeze)
         {
-            string dbSerialized = database.SerializeToString();
+            string serializedSneeze = sneeze.SerializeToString();
+	        foreach (ConnectionInfo info in NetworkComms.AllConnectionInfo())
+	        {
+		        TCPConnection.GetConnection(info).SendObject(Messages.SneezeUpdated, serializedSneeze);
+	        }
+        }
+
+        private static void TellClientToUpdateUsers(UserInfo userInfo)
+        {
+            string serializedUser = userInfo.SerializeToString();
             foreach (ConnectionInfo info in NetworkComms.AllConnectionInfo())
             {
-                TCPConnection.GetConnection(info).SendObject(Messages.DatabaseObject, dbSerialized);
+                TCPConnection.GetConnection(info).SendObject(Messages.UserUpdated, serializedUser);
             }
         }
     }

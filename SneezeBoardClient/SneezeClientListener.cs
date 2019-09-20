@@ -15,14 +15,15 @@ namespace SneezeBoardClient
 
     public static class SneezeClientListener
     {
-        private const int currentVersionNumber = 0;
-
         public static event Action FailedToConnect;
         public static event Action ConnectionClosed;
+        public static event Action ConnectionOpened;
         public static event Action GotDatabase;
         public static event Action<DatabaseErrorType> DatabaseError;
         public static event Action DatabaseUpdated;
-        public static event Action<string> PersonSneezed;
+        public static event Action<SneezeRecord> PersonSneezed;
+        public static event Action UserUpdated;
+        public static event Action SneezeUpdated;
 
         private static readonly object dbSync = new object();
         private static SneezeDatabase database;
@@ -30,8 +31,9 @@ namespace SneezeBoardClient
 
         static SneezeClientListener()
         {
-            NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.DatabaseObject, HandleSneezeDatabase);
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.PersonSneezed, HandlePersonSneezed);
+            NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.UserUpdated, HandleUserUpdated);
+            NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.SneezeUpdated, HandleSneezeUpdated);
             NetworkComms.AppendGlobalConnectionCloseHandler(HandleConnectionClosed);
         }
 
@@ -65,6 +67,7 @@ namespace SneezeBoardClient
             lock (dbSync)
             {
                 database = GetFromServer<SneezeDatabase>(Messages.DatabaseRequested, Messages.DatabaseObject);
+                ConnectionOpened?.Invoke();
                 if (!VerifyDatabase())
                     return;
             }
@@ -97,7 +100,7 @@ namespace SneezeBoardClient
             if (database == null)
                 return false;
 
-            if (database.Version != currentVersionNumber)
+            if (database.Version != SneezeDatabase.currentVersionNumber)
             {
                 NetworkComms.CloseAllConnections();
                 database = null;
@@ -108,11 +111,11 @@ namespace SneezeBoardClient
             return true;
         }
 
-        private static T GetFromServer<T>(string sendMessage, string returnMessage) where T : ServerObject, new()
+        private static T1 GetFromServer<T1>(string sendMessage, string returnMessage, string serializedObject = "") where T1 : ServerObject, new()
         {
             ConnectionInfo serverConnectionInfo;
             if (ip == null)
-                return default(T);
+                return default(T1);
             try
             {
                 serverConnectionInfo = new ConnectionInfo(ip, CommonInfo.ServerPort);
@@ -121,17 +124,20 @@ namespace SneezeBoardClient
             {
                 Console.WriteLine(e.ToString());
                 //ShowMessage("Failed to parse the server IP and port. Please ensure it is correct and try again");
-                return default(T);
+                return default(T1);
             }
 
             try
             {
                 TCPConnection serverConnection = TCPConnection.GetConnection(serverConnectionInfo);
                 
-                string serializedObj = serverConnection.SendReceiveObject<string>(
-                    sendMessage, returnMessage, 10000);
+                string serializedObj = String.Empty;
+                if (serializedObject == "")
+	                serializedObj = serverConnection.SendReceiveObject<string>(sendMessage, returnMessage,  10000);
+                else
+	                serializedObj = serverConnection.SendReceiveObject<string, string>(sendMessage, returnMessage, 10000, serializedObject);
 
-                T obj = new T();
+                T1 obj = new T1();
                 obj.DeserializeFromString(serializedObj);
                 return obj;
             }
@@ -148,7 +154,7 @@ namespace SneezeBoardClient
                 /*AppendLineToChatHistory("Error: A general error occurred while trying to send message to " + serverConnectionInfo + ". Please check settings and try again.");*/
             }
 
-            return default(T);
+            return default(T1);
         }
 
         private static void SendToServer<T>(string sendMessage, T objectToSend) where T : ServerObject
@@ -184,22 +190,49 @@ namespace SneezeBoardClient
             }
         }
 
-        private static void HandleSneezeDatabase(PacketHeader header, Connection connection, string serializedDatabase)
+        private static void HandleUserUpdated(PacketHeader header, Connection connection, string serializedUser)
         {
             lock (dbSync)
             {
-                database = new SneezeDatabase();
-                database.DeserializeFromString(serializedDatabase);
-                if (!VerifyDatabase())
-                    return;
+                UserInfo user = new UserInfo();
+                user.DeserializeFromString(serializedUser);
+                if (database != null)
+                    database.IdToUser[user.UserGuid] = user;
             }
 
-            DatabaseUpdated?.Invoke();
+            UserUpdated?.Invoke();
         }
 
-        private static void HandlePersonSneezed(PacketHeader header, Connection connection, string name)
+        private static void HandleSneezeUpdated(PacketHeader header, Connection connection, string serializedSneeze)
         {
-            PersonSneezed?.Invoke(name);
+            lock (dbSync)
+            {
+                if (database == null)
+                    return;
+
+                SneezeRecord sneeze = new SneezeRecord();
+                sneeze.DeserializeFromString(serializedSneeze);
+                int sneezeIndex = database.Sneezes.FindIndex(s => s.Date == sneeze.Date);
+                if (sneezeIndex == -1)
+                    return; // This should never happen, but just in case...
+
+                database.Sneezes[sneezeIndex] = sneeze;
+            }
+
+            SneezeUpdated?.Invoke();
+        }
+
+        private static void HandlePersonSneezed(PacketHeader header, Connection connection, string serializedSneeze)
+        {
+            SneezeRecord sneeze;
+            lock (dbSync)
+            {
+                sneeze = new SneezeRecord();
+                sneeze.DeserializeFromString(serializedSneeze);
+                Database?.Sneezes.Add(sneeze);
+            }
+
+            PersonSneezed?.Invoke(sneeze);
         }
 
         private static void HandleConnectionClosed(Connection connection)

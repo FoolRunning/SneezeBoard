@@ -8,10 +8,11 @@ namespace SneezeBoardCommon
 {
     public class SneezeDatabase : ServerObject
     {
+       public const int currentVersionNumber = 1;
+
         private const string fileNameFormat = "database{0}.xml";
         private const int numOfBackups = 4;
         private static string DBDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "SneezeBoard");
-        private static string DBPath => Path.Combine(DBDir, "database.xml");
 
         public int CountdownStart = 27002;
 
@@ -126,7 +127,7 @@ namespace SneezeBoardCommon
 
         public void Save()
         {
-            if (!Directory.Exists(DBDir))
+	        if (!Directory.Exists(DBDir))
                 Directory.CreateDirectory(DBDir);
 
             IReadOnlyList<FileInfo> existingFiles = GetDBSaveFiles();
@@ -157,9 +158,13 @@ namespace SneezeBoardCommon
         {
             XmlSerializer xmlSerial = new XmlSerializer(typeof(SneezeDatabase));
             SneezeDatabase db = (SneezeDatabase)xmlSerial.Deserialize(reader);
+            
+            // If database needs to go through some kind of upgrade process, do that here.
+
             Sneezes = db.Sneezes;
             IdToUser = db.IdToUser;
             CountdownStart = db.CountdownStart;
+            Version = currentVersionNumber;
         }
 
         private IReadOnlyList<FileInfo> GetDBSaveFiles()

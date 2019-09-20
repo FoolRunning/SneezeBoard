@@ -8,9 +8,12 @@ namespace SneezeBoardCommon
         public const string Sneeze = "Sneeze";
         public const string AddUser = "AddUser";
         public const string DatabaseRequested = "DatabaseRequested";
+        public const string DatabaseChangesRequest = "DatabaseChangesRequest";
         public const string UpdateUser = "UpdateUser";
         public const string UpdateSneeze = "UpdateSneeze";
         public const string PersonSneezed = "PersonSneezed";
+        public const string UserUpdated = "UsersUpdated";
+        public const string SneezeUpdated = "SneezeUpdated";
     }
 
     public static class CommonInfo

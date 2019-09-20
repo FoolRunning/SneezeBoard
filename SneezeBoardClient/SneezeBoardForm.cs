@@ -17,6 +17,7 @@ namespace SneezeBoardClient
 
         private DatabaseErrorType dbError = DatabaseErrorType.None;
         private bool failedToConnect;
+        private bool connectionOpening;
         private bool connectionClosed;
         private SneezeRecord lastHoveredSneeze;
 
@@ -31,6 +32,8 @@ namespace SneezeBoardClient
             SneezeClientListener.DatabaseUpdated += SneezeClientListener_DatabaseUpdated;
             SneezeClientListener.PersonSneezed += SneezeClientListener_PersonSneezed;
             SneezeClientListener.ConnectionClosed += SneezeClientListener_ConnectionClosed;
+            SneezeClientListener.ConnectionOpened += SneezeClientListener_ConnectionOpened;
+            SneezeClientListener.UserUpdated += SneezeClientListener_UserUpdated;
             SneezeClientListener.DatabaseError += SneezeClientListener_DatabaseError;
 
             txtbx_ip.Text = Settings.Default.ServerIP;
@@ -66,6 +69,11 @@ namespace SneezeBoardClient
             lbl_sneeze_display.Invalidate();
         }
 
+        private void SneezeClientListener_ConnectionOpened()
+        {
+	        connectionOpening = false;
+        }
+
         private void SneezeClientListener_FailedToConnect()
         {
             failedToConnect = true;
@@ -78,15 +86,26 @@ namespace SneezeBoardClient
             lbl_sneeze_display.Invalidate();
         }
 
-        private void SneezeClientListener_PersonSneezed(string name)
+        private void SneezeClientListener_PersonSneezed(SneezeRecord sneeze)
         {
             BeginInvoke(new Action(() =>
             {
-                if (name != CurrentUser?.Name)
-                    notifyIcon?.ShowBalloonTip(2000, "Sneeze Countdown", $"{name} sneezed!", ToolTipIcon.None);
+                if (sneeze.UserId != CurrentUser?.UserGuid)
+                {
+                    string userName = SneezeClientListener.Database.IdToUser[sneeze.UserId].Name;
+                    notifyIcon?.ShowBalloonTip(2000, "Sneeze Countdown", $"{userName} sneezed!", ToolTipIcon.None);
+                }
             }));
         }
-        
+
+        private void SneezeClientListener_UserUpdated()
+        {
+            BeginInvoke(new Action(() =>
+            {
+                UpdateUIState();
+            }));
+        }
+
         private void SneezeClientListener_DatabaseUpdated()
         {
             BeginInvoke(new Action(() =>
@@ -150,6 +169,8 @@ namespace SneezeBoardClient
                 }
                 else if (connectionClosed)
                     DrawTextCentered("Connection to server was lost.", g, font, Color.Red);
+                else if (connectionOpening)
+                    DrawTextCentered("Connecting...", g, font, Color.Blue);
                 else
                     DrawTextCentered("Not connected to server.", g, font, Color.Black);
                 return;
@@ -230,6 +251,8 @@ namespace SneezeBoardClient
 
         private void btn_connect_Click(object sender, EventArgs e)
         {
+	        connectionOpening = true;
+	        lbl_sneeze_display.Invalidate();
             Settings.Default.ServerIP = txtbx_ip.Text;
             Settings.Default.Save();
 
