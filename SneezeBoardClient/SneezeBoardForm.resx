@@ -1847,6 +1847,22 @@
   <metadata name="tmr_updateApocalypse.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>362, 17</value>
   </metadata>
+  <data name="btn_stats.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABkAAAAQCAYAAADj5tSrAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAR
+        7wAAEe8BCNwO7QAAAjtJREFUOE9jwAcC5nBcSNok+h+Go1cJ/PObxZYOlaYOCF7I9arrkcl/GC47pfof
+        aEkDVJo6IHAex6v2e0a0tQQYXK+abuj9b7mtT3tLSk4o/2+7awi2pKWfZc/XKsaVQLwKjisZmqBaSAcw
+        S4qOKv7P2Cn1P++A3P9FXcz/f83V/P9nvR0cf6tjewXVgh8oeLUzomNkS5I2iv4Pms8JtuR7u8D/3yvM
+        SLMEaKC9bsSkXybxM//phk/6pxbQ8w8o9s5vBt83bJYAg+f/tybu/3/WWJFkSahb0cr/MR17/oNog+ip
+        /xW9O/77TBP6j8sSEP7eyvv/9yoLyizxmyHyv/kmbkvAPqpl/f+1munVGQYGEyB2QcIOQMwKtQK3Jf4z
+        Rf93PjT+X3pSBaclIPypkOH3JXb2/09kZMD4MRDf4OP7D7QkEGoFfktA+QOUfJM3i8Et+TlN8f/3Nn6E
+        JfkM/69ycf1/r6kJx/dERUGWhEKtgFjiWbL6f+a04/89SlZhWALCxceV4ZaAk/BaG3AqQ7fktbr6/4eK
+        iv+vCwpisaR09f+i+ef/Z049/t80YSaGJaBgS98hibAElHxXW/3/1syDYcktWdn/Z7m5cVsCwjkzTv43
+        iJqKYgkIg3I8iiVQ/KmYFSW4nquq/r/Mz4+wJDQ8eKZvaNSxwMSCf/H5tXDsFZX1LzjX7l96m+f/9DYP
+        ME6oc/6fl2HxryfP9V9fqQ8cdyZY/qu3s/7X6eEKx82Odv/SvN2PhYYHzwQAjag0rRP45pwAAAAASUVO
+        RK5CYII=
+</value>
+  </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         AAABAAYAgIAAAAEAIAAoCAEAZgAAAEBAAAABACAAKEIAAI4IAQAwMAAAAQAgAKglAAC2SgEAICAAAAEA

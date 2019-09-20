@@ -33,6 +33,86 @@ namespace SneezeBoardCommon
         [XmlIgnore]
         public Dictionary<Guid, UserInfo> IdToUser = new Dictionary<Guid, UserInfo>();
 
+        public Dictionary<Guid, UserStats> FindUserStats()
+        {
+            Dictionary<Guid, UserStats> userSneezeCountMap = new Dictionary<Guid, UserStats>(IdToUser.Count);
+            foreach (SneezeRecord sneeze in Sneezes)
+            {
+                UserStats stats;
+                if (!userSneezeCountMap.TryGetValue(sneeze.UserId, out stats))
+                    userSneezeCountMap[sneeze.UserId] = stats = new UserStats();
+
+                stats.TotalSneezes++;
+                if (stats.FirstSneezeDate == DateTime.MinValue)
+                    stats.FirstSneezeDate = sneeze.Date;
+                stats.LastSneezeDate = sneeze.Date;
+            }
+
+            return userSneezeCountMap;
+        }
+
+        public Dictionary<Guid, int> FindLongestStreaks()
+        {
+            Dictionary<Guid, int> streakMap = new Dictionary<Guid, int>(IdToUser.Count);
+
+            Guid currentUserId = Sneezes[0].UserId; // Start with the first person
+            int currentStreak = 0; // Will automatically be incremented to 1 with the first user's first sneeze
+            int maxStreak;
+            foreach (SneezeRecord sneeze in Sneezes)
+            {
+                if (currentUserId == sneeze.UserId && sneeze.UserId != CommonInfo.UnknownUserId)
+                {
+                    currentStreak++;
+                }
+                else
+                {
+                    streakMap.TryGetValue(currentUserId, out maxStreak);
+                    if (currentStreak > maxStreak)
+                        streakMap[currentUserId] = currentStreak;
+
+                    currentStreak = 1;
+                    currentUserId = sneeze.UserId;
+                }
+            }
+
+            streakMap.TryGetValue(currentUserId, out maxStreak);
+            if (currentStreak > maxStreak)
+                streakMap[currentUserId] = currentStreak;
+
+            return streakMap;
+        }
+
+        public Dictionary<int, List<Guid>> FindAllStreaks()
+        {
+            Dictionary<int, List<Guid>> streakMap = new Dictionary<int, List<Guid>>();
+
+            Guid currentUserId = Sneezes[0].UserId; // Start with the first person
+            int currentStreak = 0; // Will automatically be incremented to 1 with the first user's first sneeze
+            List<Guid> streakUsers;
+            foreach (SneezeRecord sneeze in Sneezes)
+            {
+                if (currentUserId == sneeze.UserId && sneeze.UserId != CommonInfo.UnknownUserId)
+                {
+                    currentStreak++;
+                }
+                else
+                {
+                    if (!streakMap.TryGetValue(currentStreak, out streakUsers))
+                        streakMap[currentStreak] = streakUsers = new List<Guid>();
+                    streakUsers.Add(currentUserId);
+
+                    currentStreak = 1;
+                    currentUserId = sneeze.UserId;
+                }
+            }
+
+            if (!streakMap.TryGetValue(currentStreak, out streakUsers))
+                streakMap[currentStreak] = streakUsers = new List<Guid>();
+            streakUsers.Add(currentUserId);
+
+            return streakMap;
+        }
+
         public bool Load()
         {
             IReadOnlyList<FileInfo> existingFiles = GetDBSaveFiles();
@@ -102,5 +182,12 @@ namespace SneezeBoardCommon
 
             return existingFiles;
         }
+    }
+
+    public class UserStats
+    {
+        public int TotalSneezes;
+        public DateTime FirstSneezeDate = DateTime.MinValue;
+        public DateTime LastSneezeDate = DateTime.MinValue;
     }
 }

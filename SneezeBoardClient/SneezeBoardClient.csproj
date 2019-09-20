@@ -81,6 +81,12 @@
     <Compile Include="SneezeCommentEditorForm.Designer.cs">
       <DependentUpon>SneezeCommentEditorForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="StatsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="StatsForm.Designer.cs">
+      <DependentUpon>StatsForm.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="AddUserForm.resx">
       <DependentUpon>AddUserForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -101,6 +107,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="SneezeCommentEditorForm.resx">
       <DependentUpon>SneezeCommentEditorForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StatsForm.resx">
+      <DependentUpon>StatsForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
@@ -123,7 +132,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="gear.png" />
+    <Content Include="Resources\gear.png" />
+    <Content Include="Resources\stats.png" />
     <Content Include="SneezeCountdownIcon2.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

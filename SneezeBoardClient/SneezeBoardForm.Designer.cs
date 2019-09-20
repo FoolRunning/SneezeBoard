@@ -54,6 +54,7 @@
             this.btn_settings = new System.Windows.Forms.Button();
             this.lbl_we_win = new System.Windows.Forms.Label();
             this.tmr_updateApocalypse = new System.Windows.Forms.Timer(this.components);
+            this.btn_stats = new System.Windows.Forms.Button();
             this.pnl_scroller.SuspendLayout();
             this.contextMenuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -297,12 +298,24 @@
             this.tmr_updateApocalypse.Interval = 5000;
             this.tmr_updateApocalypse.Tick += new System.EventHandler(this.tmr_updateApocalypse_Tick);
             // 
+            // btn_stats
+            // 
+            this.btn_stats.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btn_stats.Image = ((System.Drawing.Image)(resources.GetObject("btn_stats.Image")));
+            this.btn_stats.Location = new System.Drawing.Point(449, 198);
+            this.btn_stats.Name = "btn_stats";
+            this.btn_stats.Size = new System.Drawing.Size(31, 25);
+            this.btn_stats.TabIndex = 16;
+            this.btn_stats.UseVisualStyleBackColor = true;
+            this.btn_stats.Click += new System.EventHandler(this.btn_stats_Click);
+            // 
             // SneezeBoardForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(524, 406);
             this.Controls.Add(this.lbl_we_win);
+            this.Controls.Add(this.btn_stats);
             this.Controls.Add(this.btn_settings);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.txtbx_commentary);
@@ -357,6 +370,7 @@
         private System.Windows.Forms.Label lbl_we_win;
         private System.Windows.Forms.Button btn_settings;
         private System.Windows.Forms.Timer tmr_updateApocalypse;
+        private System.Windows.Forms.Button btn_stats;
     }
 }
 

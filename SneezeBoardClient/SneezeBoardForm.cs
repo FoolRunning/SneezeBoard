@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -306,7 +307,13 @@ namespace SneezeBoardClient
             if (!String.IsNullOrEmpty(message))
                 MessageBox.Show(message, "Sneeze Streak Status");
         }
-        
+
+        private void btn_stats_Click(object sender, EventArgs e)
+        {
+            using (StatsForm form = new StatsForm())
+                form.ShowDialog(this);
+        }
+
         private void btn_settings_Click(object sender, EventArgs e)
         {
             using (SettingsForm form = new SettingsForm())
@@ -389,6 +396,7 @@ namespace SneezeBoardClient
             btn_add_sneeze.Enabled = hasDatabase && hasUser && database.Sneezes.Count < database.CountdownStart;
             btn_change_color.Enabled = hasDatabase && hasUser;
             txtbx_commentary.Enabled = hasDatabase && hasUser;
+            btn_stats.Enabled = hasDatabase;
             lbl_we_win.Visible = hasDatabase && database.Sneezes.Count >= database.CountdownStart;
         }
 
@@ -400,7 +408,7 @@ namespace SneezeBoardClient
 
             cmb_sneezers.Items.Clear();
             cmb_sneezers.Items.Add("New...");
-            foreach (UserInfo info in SneezeClientListener.Database.IdToUser.Values)
+            foreach (UserInfo info in SneezeClientListener.Database.IdToUser.Values.OrderBy(info => info.Name))
                 cmb_sneezers.Items.Add(info);
 
             cmb_sneezers.EndUpdate();
@@ -509,31 +517,19 @@ namespace SneezeBoardClient
             if (database.Sneezes.Count == 0 || CurrentUser.UserGuid == CommonInfo.UnknownUserId)
                 return "";
 
+            Dictionary<Guid, int> streaks = database.FindLongestStreaks();
             int longestStreak = 0;
             Guid streakWinnerId = database.Sneezes[0].UserId; //The first person to reach the longest streak is the winner if there is a tie
-            Guid currentUserId = streakWinnerId; // Start with the first person
-            int currentStreak = 0; // Will automatically be incremented to 1 with the first user's first sneeze
-            foreach (SneezeRecord sneeze in database.Sneezes)
+            foreach (KeyValuePair<Guid, int> streak in streaks)
             {
-                if (currentUserId == sneeze.UserId && sneeze.UserId != CommonInfo.UnknownUserId)
+                if (streak.Value > longestStreak)
                 {
-                    currentStreak++;
-                    if (currentStreak > longestStreak)
-                    {
-                        longestStreak = currentStreak;
-                        streakWinnerId = currentUserId;
-                    }
-                }
-                else
-                {
-                    if (longestStreak == 0)
-                        longestStreak = 1;
-                    currentStreak = 1;
-                    currentUserId = sneeze.UserId;
+                    longestStreak = streak.Value;
+                    streakWinnerId = streak.Key;
                 }
             }
 
-            currentStreak = 1;
+            int currentStreak = 1;
             int index = 1;
             while (index <= database.Sneezes.Count && database.Sneezes[database.Sneezes.Count - index].UserId == CurrentUser.UserGuid)
             {
