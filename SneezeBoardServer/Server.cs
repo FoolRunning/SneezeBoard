@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Drawing;
-using System.IO;
-using System.Linq;
 using NetworkCommsDotNet;
 using NetworkCommsDotNet.Connections;
 using NetworkCommsDotNet.Connections.TCP;
@@ -33,6 +31,7 @@ namespace SneezeBoardServer
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.AddUser, HandleAddUser);
             NetworkComms.AppendGlobalIncomingPacketHandler<int>(Messages.DatabaseRequested, HandleDatabaseRequest);
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.UpdateUser, HandleUpdateUser);
+            NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.UpdateSneeze, HandleUpdateSneeze);
             //Start listening for incoming connections
             Connection.StartListening(ConnectionType.TCP, new System.Net.IPEndPoint(System.Net.IPAddress.Any, CommonInfo.ServerPort));
 
@@ -59,9 +58,10 @@ namespace SneezeBoardServer
             database.Sneezes.Add(sneeze);
             database.Save();
 
+            TellClientsToUpdate();
             foreach (ConnectionInfo info in NetworkComms.AllConnectionInfo())
             {
-                TCPConnection.GetConnection(info).SendObject(Messages.PersonSneezed, serializedSneeze);
+                TCPConnection.GetConnection(info).SendObject(Messages.PersonSneezed, database.IdToUser[sneeze.UserId].Name);
             }
         }
 
@@ -72,7 +72,21 @@ namespace SneezeBoardServer
             database.IdToUser.Add(user.UserGuid, user);
             database.Save();
 
-            TellClientToUpdateUsers(user);
+            TellClientsToUpdate();
+        }
+
+        private static void HandleUpdateSneeze(PacketHeader header, Connection connection, string serializedSneeze)
+        {
+            SneezeRecord sneeze = new SneezeRecord();
+            sneeze.DeserializeFromString(serializedSneeze);
+            int sneezeIndex = database.Sneezes.FindIndex(s => s.Date == sneeze.Date);
+            if (sneezeIndex == -1)
+                return; // This should never happen, but just in case...
+
+            database.Sneezes[sneezeIndex] = sneeze;
+            database.Save();
+
+            TellClientsToUpdate();
         }
 
         private static void HandleUpdateUser(PacketHeader header, Connection connection, string serializedUser)
@@ -82,7 +96,7 @@ namespace SneezeBoardServer
             database.IdToUser[user.UserGuid].Color = user.Color;
             database.Save();
 
-            TellClientToUpdateUsers(user);
+            TellClientsToUpdate();
         }
 
         private static void HandleDatabaseRequest(PacketHeader header, Connection connection, int message)
@@ -90,12 +104,13 @@ namespace SneezeBoardServer
             connection.SendObject(Messages.DatabaseObject, database.SerializeToString());
         }
 
-        private static void TellClientToUpdateUsers(UserInfo userInfo)
+        private static void TellClientsToUpdate()
         {
-	        foreach (ConnectionInfo info in NetworkComms.AllConnectionInfo())
-	        {
-		        TCPConnection.GetConnection(info).SendObject(Messages.UserUpdated, userInfo.SerializeToString());
-	        }
+            string dbSerialized = database.SerializeToString();
+            foreach (ConnectionInfo info in NetworkComms.AllConnectionInfo())
+            {
+                TCPConnection.GetConnection(info).SendObject(Messages.DatabaseObject, dbSerialized);
+            }
         }
     }
 }
