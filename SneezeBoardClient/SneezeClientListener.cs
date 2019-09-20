@@ -1,75 +1,55 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using NetworkCommsDotNet;
 using NetworkCommsDotNet.Connections;
 using NetworkCommsDotNet.Connections.TCP;
+using NetworkCommsDotNet.Connections.UDP;
 using SneezeBoardCommon;
 
 namespace SneezeBoardClient
 {
-    public enum DatabaseErrorType
-    {
-        None,
-        VersionNumberConflict,
-    }
-
     public static class SneezeClientListener
     {
-        private const int currentVersionNumber = 0;
+        public static SneezeDatabase Database;
 
         public static event Action FailedToConnect;
         public static event Action ConnectionClosed;
+        public static event Action ConnectionOpened;
         public static event Action GotDatabase;
-        public static event Action<DatabaseErrorType> DatabaseError;
         public static event Action DatabaseUpdated;
         public static event Action<string> PersonSneezed;
+        public static event Action UserUpdated;
 
-        private static readonly object dbSync = new object();
-        private static SneezeDatabase database;
-        private static string ip;
-
-        static SneezeClientListener()
-        {
-            NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.DatabaseObject, HandleSneezeDatabase);
-            NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.PersonSneezed, HandlePersonSneezed);
-            NetworkComms.AppendGlobalConnectionCloseHandler(HandleConnectionClosed);
-        }
-
-        public static SneezeDatabase Database
-        {
-            get
-            {
-                lock (dbSync)
-                    return database;
-            }
-        }
+        public static string Ip;
 
         public static void StartListener(string ip)
         {
-            NetworkComms.CloseAllConnections();
-
-            SneezeClientListener.ip = ip;
+            Ip = ip;
             Thread t = new Thread(GetDatabase);
             t.IsBackground = true;
             t.Name = "Listener Thread";
             t.Start();
-        }
-
-        public static void ShutDown()
-        {
-            NetworkComms.Shutdown();
+            
         }
 
         private static void GetDatabase()
         {
-            lock (dbSync)
-            {
-                database = GetFromServer<SneezeDatabase>(Messages.DatabaseRequested, Messages.DatabaseObject);
-                if (!VerifyDatabase())
-                    return;
-            }
+	        NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.PersonSneezed, HandlePersonSneezed);
+            NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.UserUpdated, HandleUserUpdated);
+            NetworkComms.AppendGlobalConnectionCloseHandler(HandleConnectionClosed);
 
-            GotDatabase?.Invoke();
+			Database = GetFromServer<SneezeDatabase>(Messages.DatabaseRequested, Messages.DatabaseObject);
+
+            if(Database != null)
+                GotDatabase?.Invoke();
+            //We have used comms so we make sure to call shutdown
+            //NetworkComms.Shutdown();
+            ConnectionOpened?.Invoke();
         }
 
         public static void UpdateUser(UserInfo user)
@@ -87,51 +67,33 @@ namespace SneezeBoardClient
             SendToServer(Messages.Sneeze, sneeze);
         }
 
-        public static void UpdateSneeze(SneezeRecord sneeze)
-        {
-            SendToServer(Messages.UpdateSneeze, sneeze);
-        }
-
-        private static bool VerifyDatabase()
-        {
-            if (database == null)
-                return false;
-
-            if (database.Version != currentVersionNumber)
-            {
-                NetworkComms.CloseAllConnections();
-                database = null;
-                DatabaseError?.Invoke(DatabaseErrorType.VersionNumberConflict);
-                return false;
-            }
-
-            return true;
-        }
-
-        private static T GetFromServer<T>(string sendMessage, string returnMessage) where T : ServerObject, new()
+        private static T1 GetFromServer<T1>(string sendMessage, string returnMessage, string serializedObject = "") where T1 : ServerObject, new()
         {
             ConnectionInfo serverConnectionInfo;
-            if (ip == null)
-                return default(T);
+            if (Ip == null)
+                return default(T1);
             try
             {
-                serverConnectionInfo = new ConnectionInfo(ip, CommonInfo.ServerPort);
+                serverConnectionInfo = new ConnectionInfo(Ip, CommonInfo.ServerPort);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.ToString());
                 //ShowMessage("Failed to parse the server IP and port. Please ensure it is correct and try again");
-                return default(T);
+                return default(T1);
             }
 
             try
             {
                 TCPConnection serverConnection = TCPConnection.GetConnection(serverConnectionInfo);
                 
-                string serializedObj = serverConnection.SendReceiveObject<string>(
-                    sendMessage, returnMessage, 10000);
+                string serializedObj = String.Empty;
+                if (serializedObject == "")
+	                serializedObj = serverConnection.SendReceiveObject<string>(sendMessage, returnMessage,  10000);
+                else
+	                serializedObj = serverConnection.SendReceiveObject<string, string>(sendMessage, returnMessage, 10000, serializedObject);
 
-                T obj = new T();
+                T1 obj = new T1();
                 obj.DeserializeFromString(serializedObj);
                 return obj;
             }
@@ -148,17 +110,17 @@ namespace SneezeBoardClient
                 /*AppendLineToChatHistory("Error: A general error occurred while trying to send message to " + serverConnectionInfo + ". Please check settings and try again.");*/
             }
 
-            return default(T);
+            return default(T1);
         }
 
         private static void SendToServer<T>(string sendMessage, T objectToSend) where T : ServerObject
         {
             ConnectionInfo serverConnectionInfo;
-            if (ip == null)
+            if (Ip == null)
                 return;
             try
             {
-                serverConnectionInfo = new ConnectionInfo(ip, CommonInfo.ServerPort);
+                serverConnectionInfo = new ConnectionInfo(Ip, CommonInfo.ServerPort);
             }
             catch (Exception e)
             {
@@ -184,28 +146,38 @@ namespace SneezeBoardClient
             }
         }
 
-        private static void HandleSneezeDatabase(PacketHeader header, Connection connection, string serializedDatabase)
+        private static void HandlePersonSneezed(PacketHeader header, Connection connection, string serializedSneeze)
         {
-            lock (dbSync)
-            {
-                database = new SneezeDatabase();
-                database.DeserializeFromString(serializedDatabase);
-                if (!VerifyDatabase())
-                    return;
-            }
-
-            DatabaseUpdated?.Invoke();
+	        SneezeRecord sneeze = new SneezeRecord();
+	        sneeze.DeserializeFromString(serializedSneeze);
+			Database?.Sneezes.Add(sneeze);
+            PersonSneezed?.Invoke(Database?.IdToUser[sneeze.UserId].Name);
         }
 
-        private static void HandlePersonSneezed(PacketHeader header, Connection connection, string name)
+        private static void HandleUserUpdated(PacketHeader header, Connection connection, string serializedUser)
         {
-            PersonSneezed?.Invoke(name);
+	        UserInfo user = new UserInfo();
+	        user.DeserializeFromString(serializedUser);
+	        if (Database != null)
+	        {
+		        UserInfo dbUser = Database.Users.FirstOrDefault(x => x.UserGuid == user.UserGuid);
+		        if (dbUser == null)
+		        {
+			        UserInfo[] dbUsers = Database.Users;
+			        Array.Resize(ref dbUsers, dbUsers.Length + 1);
+			        dbUsers[dbUsers.Length - 1] = user;
+                }
+		        else
+		        {
+			        dbUser.Color = user.Color;
+			        dbUser.Name = user.Name;
+		        }
+	        }
         }
 
         private static void HandleConnectionClosed(Connection connection)
         {
-            lock (dbSync)
-                database = null;
+            Database = null;
             ConnectionClosed?.Invoke();
         }
     }

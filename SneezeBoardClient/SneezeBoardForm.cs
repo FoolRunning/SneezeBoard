@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Timers;
 using System.Windows.Forms;
 using SneezeBoardClient.Properties;
 using SneezeBoardCommon;
@@ -17,10 +18,9 @@ namespace SneezeBoardClient
 
         private DatabaseErrorType dbError = DatabaseErrorType.None;
         private bool failedToConnect;
+        private bool connectionOpening;
         private bool connectionClosed;
-        private SneezeRecord lastHoveredSneeze;
 
-        #region Constructor
         public SneezeBoardForm()
         {
             InitializeComponent();
@@ -31,39 +31,28 @@ namespace SneezeBoardClient
             SneezeClientListener.DatabaseUpdated += SneezeClientListener_DatabaseUpdated;
             SneezeClientListener.PersonSneezed += SneezeClientListener_PersonSneezed;
             SneezeClientListener.ConnectionClosed += SneezeClientListener_ConnectionClosed;
-            SneezeClientListener.DatabaseError += SneezeClientListener_DatabaseError;
+            SneezeClientListener.ConnectionOpened += SneezeClientListener_ConnectionOpened;
+            SneezeClientListener.UserUpdated += SneezeClientListener_UserUpdated;
 
             txtbx_ip.Text = Settings.Default.ServerIP;
             lbl_apocalypse.Text = "";
             UpdateUIState();
-            //if (Environment.OSVersion.Platform == PlatformID.Unix)
-            //{
-            //    try
-            //    {
-            //        notifyIcon.Dispose();
-            //        components.Remove(notifyIcon);
-            //        notifyIcon = null;
-            //    }
-            //    catch
-            //    {
-            //        // This can crash on Linux
-            //    }
-            //}
         }
-        #endregion
 
-        #region Properties
         private UserInfo CurrentUser
         {
             get { return cmb_sneezers.SelectedItem as UserInfo; }
         }
-        #endregion
 
-        #region Event handlers
         private void SneezeClientListener_ConnectionClosed()
         {
             connectionClosed = true;
             lbl_sneeze_display.Invalidate();
+        }
+
+        private void SneezeClientListener_ConnectionOpened()
+        {
+	        connectionOpening = false;
         }
 
         private void SneezeClientListener_FailedToConnect()
@@ -72,34 +61,46 @@ namespace SneezeBoardClient
             lbl_sneeze_display.Invalidate();
         }
 
-        private void SneezeClientListener_DatabaseError(DatabaseErrorType errorType)
-        {
-            dbError = errorType;
-            lbl_sneeze_display.Invalidate();
-        }
-
         private void SneezeClientListener_PersonSneezed(string name)
         {
             BeginInvoke(new Action(() =>
             {
+	            SneezeDatabase database = SneezeClientListener.Database;
+	            cmb_sneezers.SelectedItem = database.IdToUser.Values.FirstOrDefault(u => u.UserGuid == Settings.Default.LastSneezer);
+	            if (database.Sneezes.Count > 0)
+	            {
+		            Point sneezeLoc = GetSneezeLocation(SneezeClientListener.Database.Sneezes.Count - 1);
+		            scroll_horizontal.Value = Math.Max(0, sneezeLoc.X - scroll_horizontal.Width / 2);
+	            }
+
+	            CalculateApocalypse(DateTime.Now - TimeSpan.FromDays(180.0));
+                lbl_sneeze_display.Invalidate();
+	            CalculateSneezeScrollBar();
+	            UpdateUIState();
+
                 if (name != CurrentUser?.Name)
-                    notifyIcon?.ShowBalloonTip(2000, "Sneeze Countdown", $"{name} sneezed!", ToolTipIcon.None);
+                    notifyIcon.ShowBalloonTip(2000, "Sneeze Countdown", $"{name} sneezed!", ToolTipIcon.None);
             }));
         }
-        
+
+        private void SneezeClientListener_UserUpdated()
+        {
+	        BeginInvoke(new Action(() =>
+	        {
+		        UpdateUIState();
+	        }));
+        }
+
         private void SneezeClientListener_DatabaseUpdated()
         {
             BeginInvoke(new Action(() =>
             {
-                SneezeDatabase database = SneezeClientListener.Database;
-                if (database == null)
-                    return; // Could have been set to null after the BeginInvoke was called
-
                 lbl_sneeze_display.Invalidate();
                 CalculateSneezeScrollBar();
                 UpdateUIState();
                 UpdateSneezers();
 
+                SneezeDatabase database = SneezeClientListener.Database;
                 cmb_sneezers.SelectedItem = database.IdToUser.Values.FirstOrDefault(u => u.UserGuid == Settings.Default.LastSneezer);
                 if (database.Sneezes.Count > 0)
                 {
@@ -107,7 +108,7 @@ namespace SneezeBoardClient
                     scroll_horizontal.Value = Math.Max(0, sneezeLoc.X - scroll_horizontal.Width / 2);
                 }
 
-                CalculateApocalypse();
+                CalculateApocalypse(DateTime.Now - TimeSpan.FromDays(180.0));
             }));
         }
 
@@ -121,35 +122,26 @@ namespace SneezeBoardClient
             //if the form is minimized  
             //hide it from the task bar  
             //and show the system tray icon (represented by the NotifyIcon control)  
-
-            if (WindowState == FormWindowState.Minimized && Environment.OSVersion.Platform != PlatformID.Unix)
+            if (WindowState == FormWindowState.Minimized)
             {
                 Hide();
             }
         }
 
-        private void SneezeBoardForm_FormClosed(object sender, FormClosedEventArgs e)
-        {
-            SneezeClientListener.ShutDown();
-        }
-
         private void lbl_sneeze_display_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
-            g.Clear(Settings.Default.BoardBackColor);
+            g.Clear(Color.White);
             Font font = lbl_sneeze_display.Font;
             SneezeDatabase database = SneezeClientListener.Database;
             if (database == null)
             {
                 if (failedToConnect)
                     DrawTextCentered("Failed to connect to server at specified IP.", g, font, Color.Red);
-                else if (dbError != DatabaseErrorType.None)
-                {
-                    if (dbError == DatabaseErrorType.VersionNumberConflict)
-                        DrawTextCentered("Database version number does not match.\nPlease update your client to the latest version.", g, font, Color.Red);
-                }
                 else if (connectionClosed)
                     DrawTextCentered("Connection to server was lost.", g, font, Color.Red);
+				else if (connectionOpening)
+	                DrawTextCentered("Connecting...", g, font, Color.Blue);
                 else
                     DrawTextCentered("Not connected to server.", g, font, Color.Black);
                 return;
@@ -197,45 +189,31 @@ namespace SneezeBoardClient
 
         private void lbl_sneeze_display_MouseMove(object sender, MouseEventArgs e)
         {
-            int sneezeIndex;
-            SneezeRecord record = GetSneezeAtLocation(lbl_sneeze_display.PointToClient(MousePosition), out sneezeIndex);
+            SneezeRecord record = GetSneezeAtLocation(lbl_sneeze_display.PointToClient(MousePosition));
             if (record == null)
             {
-                toolTip.ToolTipTitle = "";
                 toolTip.SetToolTip(lbl_sneeze_display, null);
-                lastHoveredSneeze = null;
                 return;
             }
 
-            if (record == lastHoveredSneeze)
-                return;
-            lastHoveredSneeze = record;
-
-            SneezeDatabase database = SneezeClientListener.Database;
-            string toolTipText = $"Username: {database.IdToUser[record.UserId].Name}\n" +
-                                 $"Date: {record.Date.ToLocalTime():g}";
+            string toolTipText = $"Username: {SneezeClientListener.Database.IdToUser[record.UserId].Name}\n" +
+                                 $"Date: {record.Date.ToLocalTime():g}\n";
 
             if (!String.IsNullOrEmpty(record.Comment))
-                toolTipText += "\n\n" + record.Comment;
+                toolTipText += record.Comment;
 
-            toolTip.ToolTipTitle = "Sneeze " + (database.CountdownStart - sneezeIndex);
             toolTip.SetToolTip(lbl_sneeze_display, toolTipText);
-        }
-        
-        private void lbl_sneeze_display_MouseLeave(object sender, EventArgs e)
-        {
-            toolTip.ToolTipTitle = "";
-            lastHoveredSneeze = null;
         }
 
         private void btn_connect_Click(object sender, EventArgs e)
         {
+	        connectionOpening = true;
+	        lbl_sneeze_display.Invalidate();
             Settings.Default.ServerIP = txtbx_ip.Text;
             Settings.Default.Save();
 
             failedToConnect = false;
             connectionClosed = false;
-            dbError = DatabaseErrorType.None;
 
             SneezeClientListener.StartListener(txtbx_ip.Text);
         }
@@ -308,24 +286,6 @@ namespace SneezeBoardClient
                 MessageBox.Show(message, "Sneeze Streak Status");
         }
 
-        private void btn_stats_Click(object sender, EventArgs e)
-        {
-            using (StatsForm form = new StatsForm())
-                form.ShowDialog(this);
-        }
-
-        private void btn_settings_Click(object sender, EventArgs e)
-        {
-            using (SettingsForm form = new SettingsForm())
-            {
-                if (form.ShowDialog(this) == DialogResult.OK)
-                {
-                    lbl_sneeze_display.Invalidate();
-                    CalculateApocalypse();
-                }
-            }
-        }
-
         private void notifyIcon_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             Show();
@@ -353,40 +313,6 @@ namespace SneezeBoardClient
             btn_connect.Enabled = ipAddressRegex.IsMatch(txtbx_ip.Text);
         }
 
-        private void lbl_sneeze_display_MouseClick(object sender, MouseEventArgs e)
-        {
-            if ((e.Button & MouseButtons.Left) != 0)
-                return;
-            int sneezeIndex;
-            SneezeRecord sneeze = GetSneezeAtLocation(lbl_sneeze_display.PointToClient(MousePosition), out sneezeIndex);
-            if (sneeze == null)
-                return;
-
-            if (sneeze.UserId != CurrentUser?.UserGuid)
-                return;
-
-            ContextMenuStrip strip = new ContextMenuStrip();
-            strip.Items.Add("Edit sneeze...", null, (s, a) =>
-            {
-                using (SneezeCommentEditorForm form = new SneezeCommentEditorForm(sneeze.Comment))
-                {
-                    if (form.ShowDialog(this) == DialogResult.OK)
-                    {
-                        sneeze.Comment = form.UpdatedText;
-                        SneezeClientListener.UpdateSneeze(sneeze);
-                    }
-                }
-            });
-            strip.Show(MousePosition);
-        }
-
-        private void tmr_updateApocalypse_Tick(object sender, EventArgs e)
-        {
-            CalculateApocalypse();
-        }
-        #endregion
-
-        #region Private helper methods
         private void UpdateUIState()
         {
             SneezeDatabase database = SneezeClientListener.Database;
@@ -396,7 +322,6 @@ namespace SneezeBoardClient
             btn_add_sneeze.Enabled = hasDatabase && hasUser && database.Sneezes.Count < database.CountdownStart;
             btn_change_color.Enabled = hasDatabase && hasUser;
             txtbx_commentary.Enabled = hasDatabase && hasUser;
-            btn_stats.Enabled = hasDatabase;
             lbl_we_win.Visible = hasDatabase && database.Sneezes.Count >= database.CountdownStart;
         }
 
@@ -408,7 +333,7 @@ namespace SneezeBoardClient
 
             cmb_sneezers.Items.Clear();
             cmb_sneezers.Items.Add("New...");
-            foreach (UserInfo info in SneezeClientListener.Database.IdToUser.Values.OrderBy(info => info.Name))
+            foreach (UserInfo info in SneezeClientListener.Database.IdToUser.Values)
                 cmb_sneezers.Items.Add(info);
 
             cmb_sneezers.EndUpdate();
@@ -425,18 +350,15 @@ namespace SneezeBoardClient
                 numberSize = TextRenderer.MeasureText(g, maxWidthNumber, font);
 
             int maxSneezesPerColumn = lbl_sneeze_display.Height / font.Height;
-            if(maxSneezesPerColumn <= 0)
-                return Point.Empty;
             int columnNum = index / maxSneezesPerColumn;
             int rowNum = index % maxSneezesPerColumn;
             return new Point(columnNum * (numberSize.Width + numberPadding), rowNum * font.Height);
         }
 
-        private SneezeRecord GetSneezeAtLocation(Point mousePosition, out int index)
+        private SneezeRecord GetSneezeAtLocation(Point mousePosition)
         {
             Font font = lbl_sneeze_display.Font;
             SneezeDatabase database = SneezeClientListener.Database;
-            index = -1;
             if (database == null)
                 return null;
 
@@ -455,10 +377,7 @@ namespace SneezeBoardClient
                 Point textLoc = new Point(columnNum * (numberSize.Width + numberPadding) - viewLeftEdge, rowNum * font.Height);
                 Rectangle rect = new Rectangle(textLoc, numberSize);
                 if (rect.Contains(mousePosition))
-                {
-                    index = i;
                     return database.Sneezes[i];
-                }
             }
             return null;
         }
@@ -517,19 +436,31 @@ namespace SneezeBoardClient
             if (database.Sneezes.Count == 0 || CurrentUser.UserGuid == CommonInfo.UnknownUserId)
                 return "";
 
-            Dictionary<Guid, int> streaks = database.FindLongestStreaks();
             int longestStreak = 0;
             Guid streakWinnerId = database.Sneezes[0].UserId; //The first person to reach the longest streak is the winner if there is a tie
-            foreach (KeyValuePair<Guid, int> streak in streaks)
+            Guid currentUserId = streakWinnerId; // Start with the first person
+            int currentStreak = 0; // Will automatically be incremented to 1 with the first user's first sneeze
+            foreach (SneezeRecord sneeze in database.Sneezes)
             {
-                if (streak.Value > longestStreak)
+                if (currentUserId == sneeze.UserId && sneeze.UserId != CommonInfo.UnknownUserId)
                 {
-                    longestStreak = streak.Value;
-                    streakWinnerId = streak.Key;
+                    currentStreak++;
+                    if (currentStreak > longestStreak)
+                    {
+                        longestStreak = currentStreak;
+                        streakWinnerId = currentUserId;
+                    }
+                }
+                else
+                {
+                    if (longestStreak == 0)
+                        longestStreak = 1;
+                    currentStreak = 1;
+                    currentUserId = sneeze.UserId;
                 }
             }
 
-            int currentStreak = 1;
+            currentStreak = 1;
             int index = 1;
             while (index <= database.Sneezes.Count && database.Sneezes[database.Sneezes.Count - index].UserId == CurrentUser.UserGuid)
             {
@@ -565,28 +496,9 @@ namespace SneezeBoardClient
             return retStr;
         }
 
-        private void CalculateApocalypse()
+        private void CalculateApocalypse(DateTime startingDate)
         {
             SneezeDatabase database = SneezeClientListener.Database;
-            if (database == null)
-            {
-                lbl_apocalypse.Text = "";
-                return;
-            }
-
-            DateTime startingDate;
-            switch (Settings.Default.DateRange)
-            {
-                case DateRangeType.OneWeek: startingDate = DateTime.Now.AddDays(-7); break;
-                case DateRangeType.TwoWeeks: startingDate = DateTime.Now.AddDays(-14); break;
-                case DateRangeType.OneMonth: startingDate = DateTime.Now.AddMonths(-1); break;
-                case DateRangeType.ThreeMonths: startingDate = DateTime.Now.AddMonths(-3); break;
-                case DateRangeType.SixMonths: startingDate = DateTime.Now.AddMonths(-6); break;
-                case DateRangeType.Year: startingDate = DateTime.Now.AddYears(-1); break;
-                default:
-                case DateRangeType.AllTime: startingDate = DateTime.MinValue; break;
-            }
-
             int countOfSneezesInDateRange = 0;
             DateTime dateOfFirstSneezeInRange = DateTime.MinValue;
             for (int i = database.Sneezes.Count - 1; i >= 0; i--)
@@ -598,10 +510,7 @@ namespace SneezeBoardClient
             }
 
             if (dateOfFirstSneezeInRange == DateTime.MinValue)
-            {
-                lbl_apocalypse.Text = "No sneezes in range";
                 return;
-            }
 
             TimeSpan timeRange = DateTime.Now - dateOfFirstSneezeInRange;
             double millisecondsBetweenSneezes = timeRange.TotalMilliseconds / countOfSneezesInDateRange;
@@ -609,6 +518,5 @@ namespace SneezeBoardClient
             DateTime apocalypseDate = DateTime.Now + TimeSpan.FromMilliseconds(millisecondsUntilComplete);
             lbl_apocalypse.Text = apocalypseDate.ToString("g");
         }
-        #endregion
     }
 }
