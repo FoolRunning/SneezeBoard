@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SneezeBoardServer", "Sneeze
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SneezeBoardCommon", "SneezeBoardCommon\SneezeBoardCommon.csproj", "{3D506EBA-D7ED-416E-B0CD-0CEEF3D70D92}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SneezeBoardService", "SneezeBoardService\SneezeBoardService.csproj", "{B4F9ED56-DF83-45BC-8A0C-242D7EF1CB3C}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,10 +27,6 @@ Global
 		{3D506EBA-D7ED-416E-B0CD-0CEEF3D70D92}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D506EBA-D7ED-416E-B0CD-0CEEF3D70D92}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D506EBA-D7ED-416E-B0CD-0CEEF3D70D92}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B4F9ED56-DF83-45BC-8A0C-242D7EF1CB3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B4F9ED56-DF83-45BC-8A0C-242D7EF1CB3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B4F9ED56-DF83-45BC-8A0C-242D7EF1CB3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B4F9ED56-DF83-45BC-8A0C-242D7EF1CB3C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
