@@ -165,6 +165,7 @@ namespace SneezeBoardCommon
             Sneezes = db.Sneezes;
             IdToUser = db.IdToUser;
             CountdownStart = db.CountdownStart;
+            Version = db.Version;
         }
 
         private IReadOnlyList<FileInfo> GetDBSaveFiles()
