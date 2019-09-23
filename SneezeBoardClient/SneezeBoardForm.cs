@@ -34,6 +34,7 @@ namespace SneezeBoardClient
             SneezeClientListener.ConnectionClosed += SneezeClientListener_ConnectionClosed;
             SneezeClientListener.ConnectionOpened += SneezeClientListener_ConnectionOpened;
             SneezeClientListener.UserUpdated += SneezeClientListener_UserUpdated;
+            SneezeClientListener.SneezeUpdated += SneezeClientListener_SneezeUpdated;
             SneezeClientListener.DatabaseError += SneezeClientListener_DatabaseError;
 
             txtbx_ip.Text = Settings.Default.ServerIP;
@@ -90,11 +91,13 @@ namespace SneezeBoardClient
         {
             BeginInvoke(new Action(() =>
             {
+                lbl_sneeze_display.Invalidate();
                 if (sneeze.UserId != CurrentUser?.UserGuid)
                 {
                     string userName = SneezeClientListener.Database.IdToUser[sneeze.UserId].Name;
                     notifyIcon?.ShowBalloonTip(2000, "Sneeze Countdown", $"{userName} sneezed!", ToolTipIcon.None);
                 }
+                CalculateApocalypse();
             }));
         }
 
@@ -102,7 +105,17 @@ namespace SneezeBoardClient
         {
             BeginInvoke(new Action(() =>
             {
+                lbl_sneeze_display.Invalidate();
+                UpdateSneezers();
                 UpdateUIState();
+            }));
+        }
+
+        private void SneezeClientListener_SneezeUpdated()
+        {
+            BeginInvoke(new Action(() =>
+            {
+                lbl_sneeze_display.Invalidate();
             }));
         }
 

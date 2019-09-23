@@ -122,6 +122,7 @@ namespace SneezeBoardCommon
 
             using (TextReader reader = new StreamReader(existingFiles[existingFiles.Count - 1].FullName))
                 DeserializeFromStream(reader);
+            Version = currentVersionNumber;
             return true;
         }
 
@@ -164,7 +165,6 @@ namespace SneezeBoardCommon
             Sneezes = db.Sneezes;
             IdToUser = db.IdToUser;
             CountdownStart = db.CountdownStart;
-            Version = currentVersionNumber;
         }
 
         private IReadOnlyList<FileInfo> GetDBSaveFiles()
