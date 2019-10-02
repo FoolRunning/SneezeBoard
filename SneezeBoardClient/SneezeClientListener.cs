@@ -131,11 +131,11 @@ namespace SneezeBoardClient
             {
                 TCPConnection serverConnection = TCPConnection.GetConnection(serverConnectionInfo);
                 
-                string serializedObj = String.Empty;
+                string serializedObj;
                 if (serializedObject == "")
-	                serializedObj = serverConnection.SendReceiveObject<string>(sendMessage, returnMessage,  10000);
+	                serializedObj = serverConnection.SendReceiveObject<string>(sendMessage, returnMessage,  30000);
                 else
-	                serializedObj = serverConnection.SendReceiveObject<string, string>(sendMessage, returnMessage, 10000, serializedObject);
+	                serializedObj = serverConnection.SendReceiveObject<string, string>(sendMessage, returnMessage, 30000, serializedObject);
 
                 T1 obj = new T1();
                 obj.DeserializeFromString(serializedObj);
