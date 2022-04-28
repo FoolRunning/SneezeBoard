@@ -24,6 +24,7 @@ namespace SneezeBoardClient
         public static event Action<SneezeRecord> PersonSneezed;
         public static event Action UserUpdated;
         public static event Action SneezeUpdated;
+        public static event Action SneezeRemoved;
 
         private static readonly object dbSync = new object();
         private static SneezeDatabase database;
@@ -34,6 +35,7 @@ namespace SneezeBoardClient
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.PersonSneezed, HandlePersonSneezed);
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.UserUpdated, HandleUserUpdated);
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.SneezeUpdated, HandleSneezeUpdated);
+            NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.SneezeRemoved, HandleSneezeRemoved);
             NetworkComms.AppendGlobalConnectionCloseHandler(HandleConnectionClosed);
         }
 
@@ -93,6 +95,11 @@ namespace SneezeBoardClient
         public static void UpdateSneeze(SneezeRecord sneeze)
         {
             SendToServer(Messages.UpdateSneeze, sneeze);
+        }
+
+        public static void RemoveSneeze(SneezeRecord sneeze)
+        {
+            SendToServer(Messages.RemoveSneeze, sneeze);
         }
 
         private static bool VerifyDatabase()
@@ -233,6 +240,24 @@ namespace SneezeBoardClient
             }
 
             PersonSneezed?.Invoke(sneeze);
+        }
+
+        private static void HandleSneezeRemoved(PacketHeader header, Connection connection, string serializedSneeze)
+        {
+            lock (dbSync)
+            {
+                if (database == null)
+                    return;
+
+                SneezeRecord sneeze = new SneezeRecord();
+                sneeze.DeserializeFromString(serializedSneeze);
+                var sneezeRecord = database.Sneezes.Find(s => s.Date == sneeze.Date);
+                if (sneezeRecord != null)
+                {
+                    database.Sneezes.Remove(sneezeRecord);
+                    SneezeRemoved?.Invoke();
+                }
+            }
         }
 
         private static void HandleConnectionClosed(Connection connection)

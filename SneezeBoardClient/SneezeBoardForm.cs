@@ -35,6 +35,7 @@ namespace SneezeBoardClient
             SneezeClientListener.ConnectionOpened += SneezeClientListener_ConnectionOpened;
             SneezeClientListener.UserUpdated += SneezeClientListener_UserUpdated;
             SneezeClientListener.SneezeUpdated += SneezeClientListener_SneezeUpdated;
+            SneezeClientListener.SneezeRemoved += SneezeClientListener_SneezeRemoved;
             SneezeClientListener.DatabaseError += SneezeClientListener_DatabaseError;
 
             txtbx_ip.Text = Settings.Default.ServerIP;
@@ -112,6 +113,14 @@ namespace SneezeBoardClient
         }
 
         private void SneezeClientListener_SneezeUpdated()
+        {
+            BeginInvoke(new Action(() =>
+            {
+                lbl_sneeze_display.Invalidate();
+            }));
+        }
+
+        private void SneezeClientListener_SneezeRemoved()
         {
             BeginInvoke(new Action(() =>
             {
@@ -411,6 +420,16 @@ namespace SneezeBoardClient
                         sneeze.Comment = form.UpdatedText;
                         SneezeClientListener.UpdateSneeze(sneeze);
                     }
+                }
+            });
+            strip.Items.Add("Remove sneeze...", null, (s, a) =>
+            {
+                if (DialogResult.Yes == MessageBox.Show(this,
+                                "Are you sure you want to delete this sneeze?",
+                                "Delete Sneeze",
+                                MessageBoxButtons.YesNo, MessageBoxIcon.Question))
+                {
+                    SneezeClientListener.RemoveSneeze(sneeze);
                 }
             });
             strip.Show(MousePosition);

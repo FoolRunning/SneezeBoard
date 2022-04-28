@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Threading;
 using NetworkCommsDotNet;
 using NetworkCommsDotNet.Connections;
 using NetworkCommsDotNet.Connections.TCP;
@@ -10,9 +11,15 @@ namespace SneezeBoardServer
     class Server
     {
         private static SneezeDatabase database = new SneezeDatabase();
+        static ManualResetEvent _quitEvent = new ManualResetEvent(false);
 
         static void Main(string[] args)
         {
+            Console.CancelKeyPress += (sender, eArgs) => {
+                _quitEvent.Set();
+                eArgs.Cancel = true;
+            };
+
             if (!database.Load())
                 database.IdToUser.Add(CommonInfo.UnknownUserId, new UserInfo("Nemo", CommonInfo.UnknownUserId, Color.Sienna));
             //DO NOT DELETE! May need this later.
@@ -32,6 +39,7 @@ namespace SneezeBoardServer
             NetworkComms.AppendGlobalIncomingPacketHandler<int>(Messages.DatabaseRequested, HandleDatabaseRequest);
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.UpdateUser, HandleUpdateUser);
             NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.UpdateSneeze, HandleUpdateSneeze);
+            NetworkComms.AppendGlobalIncomingPacketHandler<string>(Messages.RemoveSneeze, HandleRemoveSneeze);
             //Start listening for incoming connections
             Connection.StartListening(ConnectionType.TCP, new System.Net.IPEndPoint(System.Net.IPAddress.Any, CommonInfo.ServerPort));
 
@@ -40,10 +48,13 @@ namespace SneezeBoardServer
             foreach (System.Net.IPEndPoint localEndPoint in Connection.ExistingLocalListenEndPoints(ConnectionType.TCP))
                 Console.WriteLine("{0}:{1}", localEndPoint.Address, localEndPoint.Port);
 
+            
             //Let the user close the server
-            Console.WriteLine("\nPress any key to close server.");
-            Console.ReadKey(true);
+            Console.WriteLine("\nPress Ctrl+C to close server.");
 
+            _quitEvent.WaitOne();
+            
+            Console.WriteLine("Shutting Down");
             //We have used NetworkComms so we should ensure that we correctly call shutdown
             NetworkComms.Shutdown();
         }
@@ -98,6 +109,21 @@ namespace SneezeBoardServer
             TellClientToUpdateUsers(user);
         }
 
+        private static void HandleRemoveSneeze(PacketHeader header, Connection connection, string serializedSneeze)
+        {
+            SneezeRecord sneeze = new SneezeRecord();
+            sneeze.DeserializeFromString(serializedSneeze);
+            var sneezeRecord = database.Sneezes.Find(s => s.Date == sneeze.Date);
+            if (sneezeRecord != null)
+            {
+                database.Sneezes.Remove(sneezeRecord);
+                database.Save();
+
+                //We could send the entire database, but let's try to avoid that if possible.
+                TellClientToRemoveSneeze(sneeze);
+            }
+        }
+
         private static void HandleDatabaseRequest(PacketHeader header, Connection connection, int message)
         {
             connection.SendObject(Messages.DatabaseObject, database.SerializeToString());
@@ -110,6 +136,15 @@ namespace SneezeBoardServer
 	        {
 		        TCPConnection.GetConnection(info).SendObject(Messages.SneezeUpdated, serializedSneeze);
 	        }
+        }
+
+        private static void TellClientToRemoveSneeze(SneezeRecord sneeze)
+        {
+            string serializedSneeze = sneeze.SerializeToString();
+            foreach (ConnectionInfo info in NetworkComms.AllConnectionInfo())
+            {
+                TCPConnection.GetConnection(info).SendObject(Messages.SneezeRemoved, serializedSneeze);
+            }
         }
 
         private static void TellClientToUpdateUsers(UserInfo userInfo)
